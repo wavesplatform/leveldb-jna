@@ -13,25 +13,16 @@ public class LevelDBKeyValueIterator extends LevelDBIteratorBase<KeyValuePair> {
         levelDB.checkDatabaseOpen();
         checkIteratorOpen();
 
-        PointerByReference resultPointer;
-        PointerByReference resultLengthPointer = new PointerByReference();
-        long resultLength;
+        final PointerByReference lengthPtr = new PointerByReference();
+        final PointerByReference keyPtr = LevelDBNative.leveldb_iter_key(iterator, lengthPtr);
+        final long keyLength = (Native.POINTER_SIZE == 8) ? lengthPtr.getPointer().getLong(0) : lengthPtr.getPointer().getInt(0);
+        final byte[] key = keyPtr.getPointer().getByteArray(0, (int) keyLength);
+        LevelDBNative.leveldb_free(keyPtr.getPointer());
 
-        resultPointer = LevelDBNative.leveldb_iter_key(iterator, resultLengthPointer);
-        if (Native.POINTER_SIZE == 8) {
-            resultLength = resultLengthPointer.getPointer().getLong(0);
-        } else {
-            resultLength = resultLengthPointer.getPointer().getInt(0);
-        }
-        byte[] key = resultPointer.getPointer().getByteArray(0, (int) resultLength);
-
-        resultPointer = LevelDBNative.leveldb_iter_value(iterator, resultLengthPointer);
-        if (Native.POINTER_SIZE == 8) {
-            resultLength = resultLengthPointer.getPointer().getLong(0);
-        } else {
-            resultLength = resultLengthPointer.getPointer().getInt(0);
-        }
-        byte[] value = resultPointer.getPointer().getByteArray(0, (int) resultLength);
+        final PointerByReference valuePtr = LevelDBNative.leveldb_iter_value(iterator, lengthPtr);
+        final long valueLength = (Native.POINTER_SIZE == 8) ? lengthPtr.getPointer().getLong(0) : lengthPtr.getPointer().getInt(0);
+        byte[] value = valuePtr.getPointer().getByteArray(0, (int) valueLength);
+        LevelDBNative.leveldb_free(valuePtr.getPointer());
 
         LevelDBNative.leveldb_iter_next(iterator);
 
