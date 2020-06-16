@@ -20,6 +20,13 @@ if [[ "$1" == "clean" ]]; then
   git reset --hard
 fi
 
+if [[ -n $CUSTOM_ARCH ]]; then
+  echo "set(CMAKE_C_COMPILER $CUSTOM_ARCH-linux-gnu-gcc)" >>$SNAPPY_HOME/CMakeLists.txt
+  echo "set(CMAKE_CXX_COMPILER $CUSTOM_ARCH-linux-gnu-g++)" >>$SNAPPY_HOME/CMakeLists.txt
+  echo "set(CMAKE_C_COMPILER $CUSTOM_ARCH-linux-gnu-gcc)" >>$LEVELDB_HOME/CMakeLists.txt
+  echo "set(CMAKE_CXX_COMPILER $CUSTOM_ARCH-linux-gnu-g++)" >>$LEVELDB_HOME/CMakeLists.txt
+fi
+
 echo --------------------
 echo Build Snappy
 echo --------------------
@@ -29,11 +36,7 @@ mkdir -p build && cd build
 if [[ "$OSTYPE" == "msys" ]]; then
   /mingw64/bin/cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_POSITION_INDEPENDENT_CODE=on -DBUILD_SHARED_LIBS=off -G "MSYS Makefiles" ..
 else
-  if [[ -z $CUSTOM_ARCH ]]; then
-    cmake -DCMAKE_POSITION_INDEPENDENT_CODE=on -DBUILD_SHARED_LIBS=off -A "$CUSTOM_ARCH" ..
-  else
-    cmake -DCMAKE_POSITION_INDEPENDENT_CODE=on -DBUILD_SHARED_LIBS=off ..
-  fi
+  cmake -DCMAKE_POSITION_INDEPENDENT_CODE=on -DBUILD_SHARED_LIBS=off ..
 fi
 cmake --build .
 cp ../*.h .
@@ -51,11 +54,7 @@ mkdir -p build && cd build
 if [[ "$OSTYPE" == "msys" ]]; then
   /mingw64/bin/cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=on -DLEVELDB_INSTALL=off "-DSNAPPY_HOME=$SNAPPY_HOME" -G "MSYS Makefiles" ..
 else
-  if [[ -z $CUSTOM_ARCH ]]; then
-    cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=on -DLEVELDB_INSTALL=off "-DSNAPPY_HOME=$SNAPPY_HOME" -A "$CUSTOM_ARCH" ..
-  else
-    cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=on -DLEVELDB_INSTALL=off "-DSNAPPY_HOME=$SNAPPY_HOME" ..
-  fi
+  cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=on -DLEVELDB_INSTALL=off "-DSNAPPY_HOME=$SNAPPY_HOME" ..
 fi
 cmake --build .
 
@@ -71,9 +70,7 @@ if [[ "$OSTYPE" == "darwin"* ]]; then
   OUTPUT_LEVELDB_FILE=
 elif [[ "$OSTYPE" == "linux"* ]]; then
   LEVELDB_FILE=libleveldb.so
-  if [[ -z $CUSTOM_ARCH ]]; then
-    LEVELDB_ARCH=linux-$CUSTOM_ARCH
-  elif [[ $(uname -m) == "x86_64" ]]; then
+  if [[ $(uname -m) == "x86_64" ]]; then
     LEVELDB_ARCH=linux-x86-64
   else
     LEVELDB_ARCH=linux-x86
