@@ -44,9 +44,8 @@ jobs:
             nexus_staging_repo=""
             echo "Snapshot version"
           else
-            output=$(mvn nexus-staging:rc-open)
-            echo $output
-            nexus_staging_repo=$(echo $output | grep -oP 'com\w+-\d+')
+            mvn nexus-staging:rc-list
+            nexus_staging_repo=$(mvn nexus-staging:rc-open | grep -oP 'com\w+-\d+')
             if [[ -z $nexus_staging_repo ]]; then
               echo "Nexus staging repo is not defined"
               exit 1
@@ -112,10 +111,10 @@ jobs:
         with:
           maven_goals_phases: deploy
           maven_args: -pl leveldb-jna-native -DstagingRepositoryId=${{needs.create-staging.outputs.staging-repo-id}}
-          #gpg_private_key: ${{ secrets.gpg_private_key }}
-          #gpg_passphrase: ${{ secrets.gpg_passphrase }}
-          #nexus_username: ${{ secrets.nexus_username }}
-          #nexus_password: ${{ secrets.nexus_password }}
+          gpg_private_key: ${{ secrets.gpg_private_key }}
+          gpg_passphrase: ${{ secrets.gpg_passphrase }}
+          nexus_username: ${{ secrets.nexus_username }}
+          nexus_password: ${{ secrets.nexus_password }}
   build-windows:
     needs: create-staging
     runs-on: windows-latest
