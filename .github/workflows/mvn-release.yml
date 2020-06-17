@@ -1,7 +1,7 @@
 name: Maven release
 
 on:
-  pull_request:
+  push:
     branches: master
   #push:
     #tags:
@@ -24,6 +24,8 @@ jobs:
         run: |
           if [[ "${{github.event_name}}" == "pull_request" ]]; then
             ref="${{github.head_ref}}"
+          else
+            ref="master"
           fi
           git fetch --prune --unshallow
           git checkout "$ref"
@@ -37,7 +39,7 @@ jobs:
             ./setversion.sh "$version"
           else
             echo "Version is auto-generated"
-            version=$(./setversion.sh snapshot)
+            version=$(./setversion.sh release)
           fi
           if [[ $mvn_version != "<revision>$version</revision>" ]]; then
             echo "Incorrect version set: $mvn_version"
@@ -46,13 +48,13 @@ jobs:
           fi
           echo "::set-output name=version::$version"
       - name: Add Maven credentials
-          uses: samuelmeuli/action-maven-publish@v1.4.0
-          with:
-            maven_goals_phases: nexus-staging:rc-list
-            #gpg_private_key: ${{ secrets.gpg_private_key }}
-            #gpg_passphrase: ${{ secrets.gpg_passphrase }}
-            #nexus_username: ${{ secrets.nexus_username }}
-            #nexus_password: ${{ secrets.nexus_password }}
+        uses: samuelmeuli/action-maven-publish@v1.4.0
+        with:
+          maven_goals_phases: nexus-staging:rc-list
+          gpg_private_key: ${{ secrets.gpg_private_key }}
+          gpg_passphrase: ${{ secrets.gpg_passphrase }}
+          nexus_username: ${{ secrets.nexus_username }}
+          nexus_password: ${{ secrets.nexus_password }}
       - name: Create staging repository
         id: open-staging
         run: |
@@ -61,7 +63,7 @@ jobs:
             nexus_staging_repo=""
             echo "Snapshot version"
           else
-            nexus_staging_repo=$(mvn nexus-staging:rc-open | grep -Eo 'comwavesplatform-\d+' | head -1)
+            nexus_staging_repo=$(mvn nexus-staging:rc-open | grep -Eo 'com\w+-\d+' | head -1)
             if [[ -z $nexus_staging_repo ]]; then
               exit 1
             fi
@@ -87,12 +89,12 @@ jobs:
       - name: Release native package
         uses: samuelmeuli/action-maven-publish@v1.4.0
         with:
-          maven_goals_phases: clean package
+          maven_goals_phases: deploy
           maven_args: -pl leveldb-jna-native -DstagingRepositoryId=${{needs.create-staging.outputs.staging-repo-id}}
-          #gpg_private_key: ${{ secrets.gpg_private_key }}
-          #gpg_passphrase: ${{ secrets.gpg_passphrase }}
-          #nexus_username: ${{ secrets.nexus_username }}
-          #nexus_password: ${{ secrets.nexus_password }}
+          gpg_private_key: ${{ secrets.gpg_private_key }}
+          gpg_passphrase: ${{ secrets.gpg_passphrase }}
+          nexus_username: ${{ secrets.nexus_username }}
+          nexus_password: ${{ secrets.nexus_password }}
       - name: Run aarch64 compilation
         run: |
           sudo apt install -y gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
@@ -100,12 +102,12 @@ jobs:
       - name: Release aarch64 package
         uses: samuelmeuli/action-maven-publish@v1.4.0
         with:
-          maven_goals_phases: clean package
+          maven_goals_phases: clean deploy
           maven_args: -pl leveldb-jna-native -Dplatform.classifier=linux64-aarch64 -DstagingRepositoryId=${{needs.create-staging.outputs.staging-repo-id}}
-          #gpg_private_key: ${{ secrets.gpg_private_key }}
-          #gpg_passphrase: ${{ secrets.gpg_passphrase }}
-          #nexus_username: ${{ secrets.nexus_username }}
-          #nexus_password: ${{ secrets.nexus_password }}
+          gpg_private_key: ${{ secrets.gpg_private_key }}
+          gpg_passphrase: ${{ secrets.gpg_passphrase }}
+          nexus_username: ${{ secrets.nexus_username }}
+          nexus_password: ${{ secrets.nexus_password }}
   build-macos:
     needs: create-staging
     runs-on: macos-latest
@@ -124,7 +126,7 @@ jobs:
       - name: Release Maven package
         uses: samuelmeuli/action-maven-publish@v1.4.0
         with:
-          maven_goals_phases: package
+          maven_goals_phases: deploy
           maven_args: -pl leveldb-jna-native -DstagingRepositoryId=${{needs.create-staging.outputs.staging-repo-id}}
           #gpg_private_key: ${{ secrets.gpg_private_key }}
           #gpg_passphrase: ${{ secrets.gpg_passphrase }}
@@ -150,12 +152,12 @@ jobs:
       - name: Release Maven package
         uses: samuelmeuli/action-maven-publish@v1.4.0
         with:
-          maven_goals_phases: package
+          maven_goals_phases: deploy
           maven_args: -pl leveldb-jna-native -DstagingRepositoryId=${{needs.create-staging.outputs.staging-repo-id}}
-          #gpg_private_key: ${{ secrets.gpg_private_key }}
-          #gpg_passphrase: ${{ secrets.gpg_passphrase }}
-          #nexus_username: ${{ secrets.nexus_username }}
-          #nexus_password: ${{ secrets.nexus_password }}
+          gpg_private_key: ${{ secrets.gpg_private_key }}
+          gpg_passphrase: ${{ secrets.gpg_passphrase }}
+          nexus_username: ${{ secrets.nexus_username }}
+          nexus_password: ${{ secrets.nexus_password }}
   build-core:
     needs: [create-staging, build-linux, build-macos, build-windows]
     runs-on: ubuntu-18.04
@@ -166,16 +168,16 @@ jobs:
         with:
           java-version: 1.8
       - name: Add Maven credentials
-          uses: samuelmeuli/action-maven-publish@v1.4.0
-          with:
-            maven_goals_phases: nexus-staging:rc-list
-            #gpg_private_key: ${{ secrets.gpg_private_key }}
-            #gpg_passphrase: ${{ secrets.gpg_passphrase }}
-            #nexus_username: ${{ secrets.nexus_username }}
-            #nexus_password: ${{ secrets.nexus_password }}
+        uses: samuelmeuli/action-maven-publish@v1.4.0
+        with:
+          maven_goals_phases: nexus-staging:rc-list
+          gpg_private_key: ${{ secrets.gpg_private_key }}
+          gpg_passphrase: ${{ secrets.gpg_passphrase }}
+          nexus_username: ${{ secrets.nexus_username }}
+          nexus_password: ${{ secrets.nexus_password }}
       - name: Release core package
         run: |
-          mvn package -pl leveldb-jna-core
+          mvn deploy -pl leveldb-jna-core
           nexus_staging_repo="${{ needs.create-staging.outputs.staging-repo-id }}"
           if [[ -n $nexus_staging_repo ]]; then
             mvn nexus-staging:drop -DstagingRepositoryId=$nexus_staging_repo
