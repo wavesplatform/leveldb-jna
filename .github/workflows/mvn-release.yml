@@ -159,5 +159,5 @@ jobs:
           nexus_staging_repo="${{ needs.create-staging.outputs.staging-repo-id }}"
           mvn clean test deploy -pl leveldb-jna-core -DstagingRepositoryId=$nexus_staging_repo
           if [[ -n $nexus_staging_repo ]]; then
-            mvn nexus-staging:drop -DstagingRepositoryId=$nexus_staging_repo
+            mvn nexus-staging:close nexus-staging:release -DstagingRepositoryId=$nexus_staging_repo
           fi
