@@ -19,34 +19,11 @@ jobs:
         uses: actions/setup-java@v1
         with:
           java-version: 1.8
-      - name: Set version
+      - name: Extract version
         id: version
         run: |
-          if [[ "${{github.event_name}}" == "pull_request" ]]; then
-            ref="${{github.head_ref}}"
-          else
-            ref="master"
-          fi
-          git fetch --prune --unshallow
-          git checkout "$ref"
-
-          export git_message=$(git log -1 --pretty=%B)
-          version_msg_regex='Version ([0-9]+\.[0-9]+\.?[0-9]*).*'
-          mvn_version=$(grep -Eo '<revision>(.*)</revision>' pom.xml | head -1)
-          if [[ $git_message =~ $version_msg_regex ]]; then
-            export version="${BASH_REMATCH[1]}"
-            echo "Version is taken from message: $git_message"
-            ./setversion.sh "$version"
-          else
-            echo "Version is auto-generated"
-            version=$(./setversion.sh release)
-          fi
-          if [[ $mvn_version != "<revision>$version</revision>" ]]; then
-            echo "Incorrect version set: $mvn_version"
-            echo "Expected version: $version"
-            exit 1
-          fi
-          echo "::set-output name=version::$version"
+          mvn_version=$(grep -oP '<revision>\K([^<]*)' pom.xml | head -1)
+          echo "::set-output name=version::$mvn_version"
       - name: Add Maven credentials
         uses: samuelmeuli/action-maven-publish@v1.4.0
         with:
@@ -58,13 +35,16 @@ jobs:
       - name: Create staging repository
         id: open-staging
         run: |
+          set -x
+          mvn nexus-staging:rc-list
           version=${{ steps.version.outputs.version }}
           if [[ $version == *"-SNAPSHOT" ]]; then
             nexus_staging_repo=""
             echo "Snapshot version"
           else
-            nexus_staging_repo=$(mvn nexus-staging:rc-open | grep -Eo 'com\w+-\d+' | head -1)
+            nexus_staging_repo=$(mvn nexus-staging:rc-open | grep -oP 'com\w+-\d+')
             if [[ -z $nexus_staging_repo ]]; then
+              echo "Nexus staging repo is not defined"
               exit 1
             fi
             echo "Staging repository: $nexus_staging_repo"
