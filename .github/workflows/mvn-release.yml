@@ -8,7 +8,69 @@ on:
     #  - v[0-9].[0-9]+.[0-9]+
 
 jobs:
+  create-staging:
+    runs-on: ubuntu-18.04
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      staging-repo-id: ${{ steps.open-staging.outputs.staging-repo-id }}
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up JDK 1.8
+        uses: actions/setup-java@v1
+        with:
+          java-version: 1.8
+      - name: Set version
+        id: version
+        run: |
+          if [[ "${{github.event_name}}" == "pull_request" ]]; then
+            ref="${{github.head_ref}}"
+          fi
+          git fetch --prune --unshallow
+          git checkout "$ref"
+
+          export git_message=$(git log -1 --pretty=%B)
+          version_msg_regex='Version ([0-9]+\.[0-9]+\.?[0-9]*).*'
+          mvn_version=$(grep -Eo '<revision>(.*)</revision>' pom.xml | head -1)
+          if [[ $git_message =~ $version_msg_regex ]]; then
+            export version="${BASH_REMATCH[1]}"
+            echo "Version is taken from message: $git_message"
+            ./setversion.sh "$version"
+          else
+            echo "Version is auto-generated"
+            version=$(./setversion.sh snapshot)
+          fi
+          if [[ $mvn_version != "<revision>$version</revision>" ]]; then
+            echo "Incorrect version set: $mvn_version"
+            echo "Expected version: $version"
+            exit 1
+          fi
+          echo "::set-output name=version::$version"
+      - name: Add Maven credentials
+          uses: samuelmeuli/action-maven-publish@v1.4.0
+          with:
+            maven_goals_phases: nexus-staging:rc-list
+            #gpg_private_key: ${{ secrets.gpg_private_key }}
+            #gpg_passphrase: ${{ secrets.gpg_passphrase }}
+            #nexus_username: ${{ secrets.nexus_username }}
+            #nexus_password: ${{ secrets.nexus_password }}
+      - name: Create staging repository
+        id: open-staging
+        run: |
+          version=${{ steps.version.outputs.version }}
+          if [[ $version == *"-SNAPSHOT" ]]; then
+            nexus_staging_repo=""
+            echo "Snapshot version"
+          else
+            nexus_staging_repo=$(mvn nexus-staging:rc-open | grep -Eo 'comwavesplatform-\d+' | head -1)
+            if [[ -z $nexus_staging_repo ]]; then
+              exit 1
+            fi
+            echo "Staging repository: $nexus_staging_repo"
+          fi
+          echo "::set-output name=staging-repo-id::$nexus_staging_repo"
+
   build-linux:
+    needs: create-staging
     runs-on: ubuntu-18.04
     steps:
       - uses: actions/checkout@v2
@@ -16,25 +78,6 @@ jobs:
         uses: actions/setup-java@v1
         with:
           java-version: 1.8
-#      - name: Set version
-#        id: version
-#        run: |
-#          export git_message=$(git log -1 --pretty=%B)
-#          version_msg_regex='Version ([0-9]+\.[0-9]+\.?[0-9]*).*'
-#          mvn_version=$(grep -Eo '<revision>(.*)</revision>' pom.xml | head -1)
-#          if [[ $git_message =~ $version_msg_regex ]]; then
-#            export version="${BASH_REMATCH[1]}"
-#            echo "Version is taken from message: $git_message"
-#            ./setversion.sh "$version"
-#          else
-#            echo "Version is auto-generated"
-#            version=$(./setversion.sh snapshot)
-#          fi
-#          if [[ $mvn_version != "<revision>$version</revision>" ]]; then
-#            echo "Incorrect version set: $mvn_version"
-#            echo "Expected version: $version"
-#            exit 1
-#          fi
       - name: Run native compilation
         run: |
           git submodule init
@@ -45,7 +88,7 @@ jobs:
         uses: samuelmeuli/action-maven-publish@v1.4.0
         with:
           maven_goals_phases: clean package
-          maven_args: -pl leveldb-jna-native
+          maven_args: -pl leveldb-jna-native -DstagingRepositoryId=${{needs.create-staging.outputs.staging-repo-id}}
           #gpg_private_key: ${{ secrets.gpg_private_key }}
           #gpg_passphrase: ${{ secrets.gpg_passphrase }}
           #nexus_username: ${{ secrets.nexus_username }}
@@ -58,12 +101,13 @@ jobs:
         uses: samuelmeuli/action-maven-publish@v1.4.0
         with:
           maven_goals_phases: clean package
-          maven_args: -pl leveldb-jna-native -Dplatform.classifier=linux64-aarch64
+          maven_args: -pl leveldb-jna-native -Dplatform.classifier=linux64-aarch64 -DstagingRepositoryId=${{needs.create-staging.outputs.staging-repo-id}}
           #gpg_private_key: ${{ secrets.gpg_private_key }}
           #gpg_passphrase: ${{ secrets.gpg_passphrase }}
           #nexus_username: ${{ secrets.nexus_username }}
           #nexus_password: ${{ secrets.nexus_password }}
   build-macos:
+    needs: create-staging
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v2
@@ -71,25 +115,6 @@ jobs:
         uses: actions/setup-java@v1
         with:
           java-version: 1.8
-      #      - name: Set version
-      #        id: version
-      #        run: |
-      #          export git_message=$(git log -1 --pretty=%B)
-      #          version_msg_regex='Version ([0-9]+\.[0-9]+\.?[0-9]*).*'
-      #          mvn_version=$(grep -Eo '<revision>(.*)</revision>' pom.xml | head -1)
-      #          if [[ $git_message =~ $version_msg_regex ]]; then
-      #            export version="${BASH_REMATCH[1]}"
-      #            echo "Version is taken from message: $git_message"
-      #            ./setversion.sh "$version"
-      #          else
-      #            echo "Version is auto-generated"
-      #            version=$(./setversion.sh snapshot)
-      #          fi
-      #          if [[ $mvn_version != "<revision>$version</revision>" ]]; then
-      #            echo "Incorrect version set: $mvn_version"
-      #            echo "Expected version: $version"
-      #            exit 1
-      #          fi
       - name: Run native compilation
         run: |
           git submodule init
@@ -100,12 +125,13 @@ jobs:
         uses: samuelmeuli/action-maven-publish@v1.4.0
         with:
           maven_goals_phases: package
-          maven_args: -pl leveldb-jna-native
+          maven_args: -pl leveldb-jna-native -DstagingRepositoryId=${{needs.create-staging.outputs.staging-repo-id}}
           #gpg_private_key: ${{ secrets.gpg_private_key }}
           #gpg_passphrase: ${{ secrets.gpg_passphrase }}
           #nexus_username: ${{ secrets.nexus_username }}
           #nexus_password: ${{ secrets.nexus_password }}
   build-windows:
+    needs: create-staging
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v2
@@ -113,25 +139,6 @@ jobs:
         uses: actions/setup-java@v1
         with:
           java-version: 1.8
-      #      - name: Set version
-      #        id: version
-      #        run: |
-      #          export git_message=$(git log -1 --pretty=%B)
-      #          version_msg_regex='Version ([0-9]+\.[0-9]+\.?[0-9]*).*'
-      #          mvn_version=$(grep -Eo '<revision>(.*)</revision>' pom.xml | head -1)
-      #          if [[ $git_message =~ $version_msg_regex ]]; then
-      #            export version="${BASH_REMATCH[1]}"
-      #            echo "Version is taken from message: $git_message"
-      #            ./setversion.sh "$version"
-      #          else
-      #            echo "Version is auto-generated"
-      #            version=$(./setversion.sh snapshot)
-      #          fi
-      #          if [[ $mvn_version != "<revision>$version</revision>" ]]; then
-      #            echo "Incorrect version set: $mvn_version"
-      #            echo "Expected version: $version"
-      #            exit 1
-      #          fi
       - uses: numworks/setup-msys2@v1
       - name: Run native compilation
         run: |
@@ -144,13 +151,13 @@ jobs:
         uses: samuelmeuli/action-maven-publish@v1.4.0
         with:
           maven_goals_phases: package
-          maven_args: -pl leveldb-jna-native
+          maven_args: -pl leveldb-jna-native -DstagingRepositoryId=${{needs.create-staging.outputs.staging-repo-id}}
           #gpg_private_key: ${{ secrets.gpg_private_key }}
           #gpg_passphrase: ${{ secrets.gpg_passphrase }}
           #nexus_username: ${{ secrets.nexus_username }}
           #nexus_password: ${{ secrets.nexus_password }}
   build-core:
-    needs: [build-linux, build-macos, build-windows]
+    needs: [create-staging, build-linux, build-macos, build-windows]
     runs-on: ubuntu-18.04
     steps:
       - uses: actions/checkout@v2
@@ -158,13 +165,18 @@ jobs:
         uses: actions/setup-java@v1
         with:
           java-version: 1.8
+      - name: Add Maven credentials
+          uses: samuelmeuli/action-maven-publish@v1.4.0
+          with:
+            maven_goals_phases: nexus-staging:rc-list
+            #gpg_private_key: ${{ secrets.gpg_private_key }}
+            #gpg_passphrase: ${{ secrets.gpg_passphrase }}
+            #nexus_username: ${{ secrets.nexus_username }}
+            #nexus_password: ${{ secrets.nexus_password }}
       - name: Release core package
-        uses: samuelmeuli/action-maven-publish@v1.4.0
-        with:
-          maven_goals_phases: clean package
-          maven_args: -pl leveldb-jna-core
-          #gpg_private_key: ${{ secrets.gpg_private_key }}
-          #gpg_passphrase: ${{ secrets.gpg_passphrase }}
-          #nexus_username: ${{ secrets.nexus_username }}
-          #nexus_password: ${{ secrets.nexus_password }}
-
+        run: |
+          mvn package -pl leveldb-jna-core
+          nexus_staging_repo="${{ needs.create-staging.outputs.staging-repo-id }}"
+          if [[ -n $nexus_staging_repo ]]; then
+            mvn nexus-staging:drop -DstagingRepositoryId=$nexus_staging_repo
+          fi

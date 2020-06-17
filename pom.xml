@@ -130,6 +130,7 @@
                     <skipStagingRepositoryClose>true</skipStagingRepositoryClose>
                     <autoReleaseAfterClose>false</autoReleaseAfterClose>
                     <stagingProfileId>126f55826efd5a</stagingProfileId>
+                    <stagingRepositoryId>${stagingRepositoryId}</stagingRepositoryId>
                 </configuration>
             </plugin>
 
@@ -283,7 +284,5 @@
                 <platform.classifier>linux-x86</platform.classifier>
             </properties>
         </profile>
-
-
     </profiles>
 </project>
