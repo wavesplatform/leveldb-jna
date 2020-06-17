@@ -129,7 +129,7 @@
                     <nexusUrl>https://oss.sonatype.org/</nexusUrl>
                     <skipStagingRepositoryClose>true</skipStagingRepositoryClose>
                     <autoReleaseAfterClose>false</autoReleaseAfterClose>
-                    <stagingProfileId>126f55826efd5a</stagingProfileId>
+                    <stagingProfileId>362051d0c77f57</stagingProfileId>
                     <stagingRepositoryId>${stagingRepositoryId}</stagingRepositoryId>
                 </configuration>
             </plugin>

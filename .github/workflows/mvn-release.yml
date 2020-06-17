@@ -25,24 +25,28 @@ jobs:
           mvn_version=$(grep -oP '<revision>\K([^<]*)' pom.xml | head -1)
           echo "::set-output name=version::$mvn_version"
       - name: Add Maven credentials
-        uses: samuelmeuli/action-maven-publish@v1.4.0
-        with:
-          maven_goals_phases: nexus-staging:rc-list
-          gpg_private_key: ${{ secrets.gpg_private_key }}
-          gpg_passphrase: ${{ secrets.gpg_passphrase }}
-          nexus_username: ${{ secrets.nexus_username }}
-          nexus_password: ${{ secrets.nexus_password }}
+        run: |
+          echo '<settings>
+                  `<servers>
+                      <server>
+                          <id>ossrh</id>
+                          <username>${{ secrets.nexus_username }}</username>
+                          <password>${{ secrets.nexus_password }}</password>
+                      </server>
+                  </servers>`
+                </settings>' > ~/.m2/settings.xml
+
       - name: Create staging repository
         id: open-staging
         run: |
-          set -x
-          mvn nexus-staging:rc-list
           version=${{ steps.version.outputs.version }}
           if [[ $version == *"-SNAPSHOT" ]]; then
             nexus_staging_repo=""
             echo "Snapshot version"
           else
-            nexus_staging_repo=$(mvn nexus-staging:rc-open | grep -oP 'com\w+-\d+')
+            output=$(mvn nexus-staging:rc-open)
+            echo $output
+            nexus_staging_repo=$(echo $output | grep -oP 'com\w+-\d+')
             if [[ -z $nexus_staging_repo ]]; then
               echo "Nexus staging repo is not defined"
               exit 1
@@ -148,13 +152,19 @@ jobs:
         with:
           java-version: 1.8
       - name: Add Maven credentials
-        uses: samuelmeuli/action-maven-publish@v1.4.0
-        with:
-          maven_goals_phases: nexus-staging:rc-list
-          gpg_private_key: ${{ secrets.gpg_private_key }}
-          gpg_passphrase: ${{ secrets.gpg_passphrase }}
-          nexus_username: ${{ secrets.nexus_username }}
-          nexus_password: ${{ secrets.nexus_password }}
+        run: |
+          echo '<settings>
+                  `<servers>
+                      <server>
+                          <id>ossrh</id>
+                          <username>${{ secrets.nexus_username }}</username>
+                          <password>${{ secrets.nexus_password }}</password>
+                      </server>
+                  </servers>`
+                </settings>' > ~/.m2/settings.xml
+
+          echo '${{ secrets.gpg_private_key }}' > ~/gpgkey.asc
+          echo ${{ secrets.gpg_passphrase }} | gpg --import --batch --yes --passphrase-fd 0 ~/gpgkey.asc
       - name: Release core package
         run: |
           mvn deploy -pl leveldb-jna-core
