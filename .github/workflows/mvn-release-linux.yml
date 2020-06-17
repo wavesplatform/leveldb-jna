@@ -39,12 +39,25 @@ jobs:
         run: |
           git submodule init
           git submodule update
-          sudo apt install -y build-essential automake libtool pkg-config gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
-          CUSTOM_ARCH=aarch64 ./bin/build_leveldb.sh clean
-      - name: Release Maven package
+          sudo apt install -y build-essential automake libtool pkg-config
+          ./bin/build_leveldb.sh clean
+      - name: Release native package
         uses: samuelmeuli/action-maven-publish@v1.4.0
         with:
-          maven_goals_phases: package
+          maven_goals_phases: clean package
+          maven_args: -pl leveldb-jna-native
+          #gpg_private_key: ${{ secrets.gpg_private_key }}
+          #gpg_passphrase: ${{ secrets.gpg_passphrase }}
+          #nexus_username: ${{ secrets.nexus_username }}
+          #nexus_password: ${{ secrets.nexus_password }}
+      - name: Run aarch64 compilation
+        run: |
+          sudo apt install -y gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
+          CUSTOM_ARCH=aarch64 ./bin/build_leveldb.sh clean
+      - name: Release aarch64 package
+        uses: samuelmeuli/action-maven-publish@v1.4.0
+        with:
+          maven_goals_phases: clean package
           maven_args: -pl leveldb-jna-native -Dplatform.classifier=linux64-aarch64
           #gpg_private_key: ${{ secrets.gpg_private_key }}
           #gpg_passphrase: ${{ secrets.gpg_passphrase }}
