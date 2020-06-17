@@ -3,7 +3,7 @@ name: Maven release
 on:
   push:
     branches: master
-  #push:
+    #push:
     #tags:
     #  - v[0-9].[0-9]+.[0-9]+
 
@@ -54,43 +54,6 @@ jobs:
           fi
           echo "::set-output name=staging-repo-id::$nexus_staging_repo"
 
-  build-linux:
-    needs: create-staging
-    runs-on: ubuntu-18.04
-    steps:
-      - uses: actions/checkout@v2
-      - name: Set up JDK 1.8
-        uses: actions/setup-java@v1
-        with:
-          java-version: 1.8
-      - name: Run native compilation
-        run: |
-          git submodule init
-          git submodule update
-          sudo apt install -y build-essential automake libtool pkg-config
-          ./bin/build_leveldb.sh clean
-      - name: Release native package
-        uses: samuelmeuli/action-maven-publish@v1.4.0
-        with:
-          maven_goals_phases: deploy
-          maven_args: -pl leveldb-jna-native -DstagingRepositoryId=${{needs.create-staging.outputs.staging-repo-id}}
-          gpg_private_key: ${{ secrets.gpg_private_key }}
-          gpg_passphrase: ${{ secrets.gpg_passphrase }}
-          nexus_username: ${{ secrets.nexus_username }}
-          nexus_password: ${{ secrets.nexus_password }}
-      - name: Run aarch64 compilation
-        run: |
-          sudo apt install -y gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
-          CUSTOM_ARCH=aarch64 ./bin/build_leveldb.sh clean
-      - name: Release aarch64 package
-        uses: samuelmeuli/action-maven-publish@v1.4.0
-        with:
-          maven_goals_phases: clean deploy
-          maven_args: -pl leveldb-jna-native -Dplatform.classifier=linux64-aarch64 -DstagingRepositoryId=${{needs.create-staging.outputs.staging-repo-id}}
-          gpg_private_key: ${{ secrets.gpg_private_key }}
-          gpg_passphrase: ${{ secrets.gpg_passphrase }}
-          nexus_username: ${{ secrets.nexus_username }}
-          nexus_password: ${{ secrets.nexus_password }}
   build-macos:
     needs: create-staging
     runs-on: macos-latest
@@ -109,7 +72,6 @@ jobs:
       - name: Release Maven package
         uses: samuelmeuli/action-maven-publish@v1.4.0
         with:
-          maven_goals_phases: deploy
           maven_args: -pl leveldb-jna-native -DstagingRepositoryId=${{needs.create-staging.outputs.staging-repo-id}}
           gpg_private_key: ${{ secrets.gpg_private_key }}
           gpg_passphrase: ${{ secrets.gpg_passphrase }}
@@ -135,14 +97,13 @@ jobs:
       - name: Release Maven package
         uses: samuelmeuli/action-maven-publish@v1.4.0
         with:
-          maven_goals_phases: deploy
           maven_args: -pl leveldb-jna-native -DstagingRepositoryId=${{needs.create-staging.outputs.staging-repo-id}}
           gpg_private_key: ${{ secrets.gpg_private_key }}
           gpg_passphrase: ${{ secrets.gpg_passphrase }}
           nexus_username: ${{ secrets.nexus_username }}
           nexus_password: ${{ secrets.nexus_password }}
-  build-core:
-    needs: [create-staging, build-linux, build-macos, build-windows]
+  build-linux:
+    needs: [create-staging, build-macos, build-windows]
     runs-on: ubuntu-18.04
     steps:
       - uses: actions/checkout@v2
@@ -150,6 +111,34 @@ jobs:
         uses: actions/setup-java@v1
         with:
           java-version: 1.8
+      - name: Install prerequisites
+        run: |
+          git submodule init
+          git submodule update
+          sudo apt install -y build-essential automake libtool pkg-config gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
+      - name: Run aarch64 compilation
+        run: |
+          CUSTOM_ARCH=aarch64 ./bin/build_leveldb.sh clean
+      - name: Release aarch64 package
+        uses: samuelmeuli/action-maven-publish@v1.4.0
+        with:
+          maven_args: -pl leveldb-jna-native -Dplatform.classifier=linux64-aarch64 -DstagingRepositoryId=${{needs.create-staging.outputs.staging-repo-id}}
+          gpg_private_key: ${{ secrets.gpg_private_key }}
+          gpg_passphrase: ${{ secrets.gpg_passphrase }}
+          nexus_username: ${{ secrets.nexus_username }}
+          nexus_password: ${{ secrets.nexus_password }}
+      - name: Run native compilation
+        run: |
+          ./bin/build_leveldb.sh clean
+      - name: Release native package
+        uses: samuelmeuli/action-maven-publish@v1.4.0
+        with:
+          maven_goals_phases: clean install deploy
+          maven_args: -pl leveldb-jna-native -DstagingRepositoryId=${{needs.create-staging.outputs.staging-repo-id}}
+          gpg_private_key: ${{ secrets.gpg_private_key }}
+          gpg_passphrase: ${{ secrets.gpg_passphrase }}
+          nexus_username: ${{ secrets.nexus_username }}
+          nexus_password: ${{ secrets.nexus_password }}
       - name: Add Maven credentials
         run: |
           echo '<settings>
@@ -162,12 +151,13 @@ jobs:
                   </servers>`
                 </settings>' > ~/.m2/settings.xml
 
-          echo '${{ secrets.gpg_private_key }}' > ~/gpgkey.asc
-          echo ${{ secrets.gpg_passphrase }} | gpg --import --batch --yes --passphrase-fd 0 ~/gpgkey.asc
+          echo '${{ secrets.gpg_private_key }}' > ~/gpgkey.asc && \
+            echo ${{ secrets.gpg_passphrase }} | gpg --import --batch --yes --passphrase-fd 0 ~/gpgkey.asc && \
+            rm ~/gpgkey.asc
       - name: Release core package
         run: |
-          mvn deploy -pl leveldb-jna-core
           nexus_staging_repo="${{ needs.create-staging.outputs.staging-repo-id }}"
+          mvn clean test deploy -pl leveldb-jna-core -DstagingRepositoryId=$nexus_staging_repo
           if [[ -n $nexus_staging_repo ]]; then
             mvn nexus-staging:drop -DstagingRepositoryId=$nexus_staging_repo
           fi
