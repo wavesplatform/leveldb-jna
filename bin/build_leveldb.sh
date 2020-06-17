@@ -70,7 +70,9 @@ if [[ "$OSTYPE" == "darwin"* ]]; then
   OUTPUT_LEVELDB_FILE=
 elif [[ "$OSTYPE" == "linux"* ]]; then
   LEVELDB_FILE=libleveldb.so
-  if [[ $(uname -m) == "x86_64" ]]; then
+  if [[ -n $CUSTOM_ARCH ]]; then
+    LEVELDB_ARCH=linux-$CUSTOM_ARCH
+  elif [[ $(uname -m) == "x86_64" ]]; then
     LEVELDB_ARCH=linux-x86-64
   else
     LEVELDB_ARCH=linux-x86
