@@ -36,7 +36,7 @@ mkdir -p build && cd build
 if [[ "$OSTYPE" == "msys" ]]; then
   /mingw64/bin/cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_POSITION_INDEPENDENT_CODE=on -DBUILD_SHARED_LIBS=off -DSNAPPY_BUILD_TESTS=off -G "MSYS Makefiles" ..
 else
-  cmake -DCMAKE_POSITION_INDEPENDENT_CODE=on -DBUILD_SHARED_LIBS=off -DSNAPPY_BUILD_TESTS=off ..
+  cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_POSITION_INDEPENDENT_CODE=on -DBUILD_SHARED_LIBS=off -DSNAPPY_BUILD_TESTS=off ..
 fi
 cmake --build .
 cp ../*.h .

@@ -1,4 +1,4 @@
-name: Maven release linux
+name: Maven release windows
 
 on:
   pull_request:
@@ -9,7 +9,7 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-18.04
+    runs-on: windows-latest
     steps:
       - uses: actions/checkout@v2
       - name: Set up JDK 1.8
@@ -35,17 +35,19 @@ jobs:
 #            echo "Expected version: $version"
 #            exit 1
 #          fi
+      - uses: numworks/setup-msys2@v1
       - name: Run native compilation
         run: |
           git submodule init
           git submodule update
-          sudo apt install -y build-essential automake libtool pkg-config gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
-          CUSTOM_ARCH=aarch64 ./bin/build_leveldb.sh clean
+          set MSYSTEM=MINGW64
+          msys2do pacman -S --noconfirm base-devel git mingw-w64-x86_64-cmake mingw-w64-x86_64-toolchain
+          msys2do bin/build_leveldb.sh clean
       - name: Release Maven package
         uses: samuelmeuli/action-maven-publish@v1.4.0
         with:
           maven_goals_phases: package
-          maven_args: -pl leveldb-jna-native -Dplatform.classifier=linux64-aarch64
+          maven_args: -pl leveldb-jna-native
           #gpg_private_key: ${{ secrets.gpg_private_key }}
           #gpg_passphrase: ${{ secrets.gpg_passphrase }}
           #nexus_username: ${{ secrets.nexus_username }}
