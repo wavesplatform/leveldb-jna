@@ -88,5 +88,7 @@ elif [[ "$OSTYPE" == "msys" ]]; then
   OUTPUT_LEVELDB_FILE=leveldb.dll
 fi
 
-mkdir -p $ROOT_HOME/leveldb-jna-native/src/main/resources/$LEVELDB_ARCH/
-cp $LEVELDB_HOME/build/$LEVELDB_FILE $ROOT_HOME/leveldb-jna-native/src/main/resources/$LEVELDB_ARCH/$OUTPUT_LEVELDB_FILE
+RES_DIR="$ROOT_HOME/leveldb-jna-native/src/main/resources"
+rm -rf "$RES_DIR"
+mkdir -p "$RES_DIR/$LEVELDB_ARCH"
+cp "$LEVELDB_HOME/build/$LEVELDB_FILE" "$RES_DIR/$LEVELDB_ARCH/$OUTPUT_LEVELDB_FILE"
