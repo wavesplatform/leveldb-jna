@@ -5,7 +5,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>com.github.karasiq.leveldb-jna</groupId>
+        <groupId>com.wavesplatform.leveldb-jna</groupId>
         <artifactId>leveldb-jna</artifactId>
         <version>${revision}</version>
     </parent>
