@@ -9,7 +9,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.version.outputs.version }}
-      staging-repo-id: ${{ steps.staging-id.outputs.staging-repo-id }}
+      staging-repo-id: ${{ steps.open-staging.outputs.staging-repo-id }}
     steps:
       - uses: actions/checkout@v2
       - name: Set up JDK 1.8
@@ -21,21 +21,34 @@ jobs:
         run: |
           mvn_version=$(grep -oP '<revision>\K([^<]*)' pom.xml | head -1)
           echo "::set-output name=version::$mvn_version"
-      - name: Generate staging repository id
-        id: staging-id
-        env:
-          STAGING_REPO_ID: levledb-jna-${{ github.run_id }}
+      - name: Add Maven credentials
         run: |
-          echo "::set-output name=staging-repo-id::$STAGING_REPO_ID"
-      - name: Create staging repo
-        uses: samuelmeuli/action-maven-publish@v1.4.0
-        with:
-          maven_goals_phases: nexus-staging:rc-open
-          maven_args: -DstagingRepositoryId=${{ steps.staging-id.outputs.staging-repo-id }}
-          gpg_private_key: ${{ secrets.gpg_private_key }}
-          gpg_passphrase: ${{ secrets.gpg_passphrase }}
-          nexus_username: ${{ secrets.nexus_username }}
-          nexus_password: ${{ secrets.nexus_password }}
+          echo '<settings>
+                  `<servers>
+                      <server>
+                          <id>ossrh</id>
+                          <username>${{ secrets.nexus_username }}</username>
+                          <password>${{ secrets.nexus_password }}</password>
+                      </server>
+                  </servers>`
+                </settings>' > ~/.m2/settings.xml
+      - name: Create staging repository
+        id: open-staging
+        run: |
+          version=${{ steps.version.outputs.version }}
+          if [[ $version == *"-SNAPSHOT" ]]; then
+            nexus_staging_repo=""
+            echo "Snapshot version"
+          else
+            mvn nexus-staging:rc-list
+            nexus_staging_repo=$(mvn nexus-staging:rc-open | grep -oP 'com\w+-\d+')
+            if [[ -z $nexus_staging_repo ]]; then
+              echo "Nexus staging repo is not defined"
+              exit 1
+            fi
+            echo "Staging repository: $nexus_staging_repo"
+          fi
+          echo "::set-output name=staging-repo-id::$nexus_staging_repo"
 
   build-native:
     needs: create-staging
@@ -56,6 +69,9 @@ jobs:
       - uses: actions/setup-java@v1
         with:
           java-version: 1.8
+      - run: |
+          git submodule init
+          git submodule update
       - name: Prepare linux x86
         if: ${{ matrix.os == 'ubuntu-latest' && matrix.arch == 'x86' }}
         run: |
@@ -84,8 +100,6 @@ jobs:
       - name: Run msys2 compilation
         if: ${{ matrix.os == 'windows-latest' }}
         run: |
-          git submodule init
-          git submodule update
           set MSYSTEM=MINGW64
           msys2do pacman -S --noconfirm base-devel git mingw-w64-x86_64-cmake mingw-w64-x86_64-toolchain
           msys2do CUSTOM_ARCH=${{ matrix.arch }} bin/build_leveldb.sh
