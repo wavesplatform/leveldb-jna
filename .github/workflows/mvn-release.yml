@@ -116,8 +116,18 @@ jobs:
       - name: Release native package
         uses: samuelmeuli/action-maven-publish@v1.4.0
         with:
-          maven_goals_phases: install
+          maven_goals_phases: install deploy
           maven_args: -pl leveldb-jna-native -DstagingRepositoryId=${{needs.create-staging.outputs.staging-repo-id}} -Dplatform.classifier=${{matrix.osname}}-${{matrix.arch}}
+          gpg_private_key: ${{ secrets.gpg_private_key }}
+          gpg_passphrase: ${{ secrets.gpg_passphrase }}
+          nexus_username: ${{ secrets.nexus_username }}
+          nexus_password: ${{ secrets.nexus_password }}
+      - name: Release core package
+        if: ${{ matrix.os == 'ubuntu-latest' && matrix.arch == 'x86_64' }}
+        uses: samuelmeuli/action-maven-publish@v1.4.0
+        with:
+          maven_goals_phases: test deploy
+          maven_args: -pl leveldb-jna-core -DstagingRepositoryId=${{needs.create-staging.outputs.staging-repo-id}}
           gpg_private_key: ${{ secrets.gpg_private_key }}
           gpg_passphrase: ${{ secrets.gpg_passphrase }}
           nexus_username: ${{ secrets.nexus_username }}
@@ -137,7 +147,7 @@ jobs:
           if [[ -n $nexus_staging_repo ]]; then
             mvn nexus-staging:drop -DstagingRepositoryId=$nexus_staging_repo
           fi
-      - name: Drop package
+      - name: Drop repository
         if: ${{ !contains(needs.create-staging.outputs.version, 'SNAPSHOT') }}
         uses: samuelmeuli/action-maven-publish@v1.4.0
         with:
