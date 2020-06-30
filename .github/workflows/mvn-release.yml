@@ -114,7 +114,18 @@ jobs:
           set MSYSTEM=MINGW64
           msys2do pacman -S --noconfirm base-devel git mingw-w64-x86_64-cmake mingw-w64-x86_64-toolchain
           msys2do CUSTOM_ARCH=${{ matrix.arch }} bin/build_leveldb.sh
+      - name: Release MacOS package
+        if: ${{ matrix.os == 'macos-latest' }}
+        uses: samuelmeuli/action-maven-publish@v1.4.0
+        with:
+          maven_goals_phases: install deploy
+          maven_args: -pl leveldb-jna-native -DstagingRepositoryId=${{needs.create-staging.outputs.staging-repo-id}}
+          gpg_private_key: ${{ secrets.gpg_private_key }}
+          gpg_passphrase: ${{ secrets.gpg_passphrase }}
+          nexus_username: ${{ secrets.nexus_username }}
+          nexus_password: ${{ secrets.nexus_password }}
       - name: Release native package
+        if: ${{ matrix.os != 'macos-latest' }}
         uses: samuelmeuli/action-maven-publish@v1.4.0
         with:
           maven_goals_phases: install deploy
