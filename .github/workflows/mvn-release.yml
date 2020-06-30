@@ -74,13 +74,13 @@ jobs:
           git submodule update
       - if: ${{ matrix.os == 'ubuntu-latest' }}
         run: |
-          sudo apt-get install gcc-multilib g++-multilib
+          sudo apt-get install -y gcc-multilib g++-multilib
       - name: Prepare linux x86
         if: ${{ matrix.os == 'ubuntu-latest' && matrix.arch == 'x86' }}
         run: |
           echo 'set_target_properties(snappy PROPERTIES COMPILE_FLAGS "-m32" LINK_FLAGS "-m32")' >> vendor/snappy/CMakeLists.txt
           echo 'set_target_properties(leveldb PROPERTIES COMPILE_FLAGS "-m32" LINK_FLAGS "-m32")' >> vendor/leveldb/CMakeLists.txt
-          sudo apt-get install -y gcc-multilib
+          echo 'set_target_properties(leveldbutil PROPERTIES COMPILE_FLAGS "-m32" LINK_FLAGS "-m32")' >> vendor/leveldb/CMakeLists.txt
       - uses: numworks/setup-msys2@v1
         if: ${{ matrix.os == 'windows-latest' }}
       - name: Prepare windows x86
@@ -88,6 +88,7 @@ jobs:
         run: |
           echo 'set_target_properties(snappy PROPERTIES CMAKE_GENERATOR_PLATFORM Win32)' >> vendor/snappy/CMakeLists.txt
           echo 'set_target_properties(leveldb PROPERTIES CMAKE_GENERATOR_PLATFORM Win32)' >> vendor/leveldb/CMakeLists.txt
+          echo 'set_target_properties(leveldbutil PROPERTIES CMAKE_GENERATOR_PLATFORM Win32)' >> vendor/leveldb/CMakeLists.txt
       - name: Prepare linux arm64
         if: ${{ matrix.arch == 'aarch64' }}
         run: |
