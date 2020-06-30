@@ -57,6 +57,12 @@ jobs:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
         arch: [x86, x86_64, aarch64]
+          - os: ubuntu-latest
+            osname: linux
+          - os: macos-latest
+            osname: darwin
+          - os: windows-latest
+            osname: win32
         exclude:
           - os: macos-latest
             arch: x86
@@ -111,7 +117,7 @@ jobs:
         uses: samuelmeuli/action-maven-publish@v1.4.0
         with:
           maven_goals_phases: install
-          maven_args: -pl leveldb-jna-native -DstagingRepositoryId=${{needs.create-staging.outputs.staging-repo-id}}
+          maven_args: -pl leveldb-jna-native -DstagingRepositoryId=${{needs.create-staging.outputs.staging-repo-id}} -Dplatform.classifier=${{matrix.osname}}-${{matrix.arch}}
           gpg_private_key: ${{ secrets.gpg_private_key }}
           gpg_passphrase: ${{ secrets.gpg_passphrase }}
           nexus_username: ${{ secrets.nexus_username }}
