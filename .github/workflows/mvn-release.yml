@@ -138,8 +138,8 @@ jobs:
         if: ${{ matrix.os == 'ubuntu-latest' && matrix.arch == 'x86_64' }}
         uses: samuelmeuli/action-maven-publish@v1.4.0
         with:
-          maven_goals_phases: test deploy
-          maven_args: -pl leveldb-jna-core -DstagingRepositoryId=${{needs.create-staging.outputs.staging-repo-id}}
+          maven_goals_phases: deploy
+          maven_args: -DskipTests -Dmaven.test.skip -pl leveldb-jna-core -DstagingRepositoryId=${{needs.create-staging.outputs.staging-repo-id}}
           gpg_private_key: ${{ secrets.gpg_private_key }}
           gpg_passphrase: ${{ secrets.gpg_passphrase }}
           nexus_username: ${{ secrets.nexus_username }}
@@ -152,13 +152,6 @@ jobs:
       - uses: actions/setup-java@v1
         with:
           java-version: 1.8
-      - name: Release core package
-        run: |
-          nexus_staging_repo="${{ needs.create-staging.outputs.staging-repo-id }}"
-          mvn clean test deploy -pl leveldb-jna-core -DstagingRepositoryId=$nexus_staging_repo || { (>&2 echo 'Maven deploy failed') ; exit 1; }
-          if [[ -n $nexus_staging_repo ]]; then
-            mvn nexus-staging:drop -DstagingRepositoryId=$nexus_staging_repo
-          fi
       - name: Drop repository
         if: ${{ !contains(needs.create-staging.outputs.version, 'SNAPSHOT') }}
         uses: samuelmeuli/action-maven-publish@v1.4.0
