@@ -20,13 +20,6 @@ if [[ "$1" == "clean" ]]; then
   git reset --hard
 fi
 
-if [[ -n $CUSTOM_ARCH ]]; then
-  echo "set(CMAKE_C_COMPILER $CUSTOM_ARCH-linux-gnu-gcc)" >>$SNAPPY_HOME/CMakeLists.txt
-  echo "set(CMAKE_CXX_COMPILER $CUSTOM_ARCH-linux-gnu-g++)" >>$SNAPPY_HOME/CMakeLists.txt
-  echo "set(CMAKE_C_COMPILER $CUSTOM_ARCH-linux-gnu-gcc)" >>$LEVELDB_HOME/CMakeLists.txt
-  echo "set(CMAKE_CXX_COMPILER $CUSTOM_ARCH-linux-gnu-g++)" >>$LEVELDB_HOME/CMakeLists.txt
-fi
-
 echo --------------------
 echo Build Snappy
 echo --------------------
@@ -80,7 +73,9 @@ elif [[ "$OSTYPE" == "linux"* ]]; then
   OUTPUT_LEVELDB_FILE=
 elif [[ "$OSTYPE" == "msys" ]]; then
   LEVELDB_FILE=libleveldb.dll
-  if [[ "$MSYSTEM" == "MINGW64" ]]; then
+  if [[ -n $CUSTOM_ARCH ]]; then
+    LEVELDB_ARCH=win32-$CUSTOM_ARCH
+  elif [[ "$MSYSTEM" == "MINGW64" ]]; then
     LEVELDB_ARCH=win32-x86-64
   else
     LEVELDB_ARCH=win32-x86
