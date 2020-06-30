@@ -72,6 +72,9 @@ jobs:
       - run: |
           git submodule init
           git submodule update
+      - if: ${{ matrix.os == 'ubuntu-latest' }}
+        run: |
+          sudo apt-get install gcc-multilib g++-multilib
       - name: Prepare linux x86
         if: ${{ matrix.os == 'ubuntu-latest' && matrix.arch == 'x86' }}
         run: |
