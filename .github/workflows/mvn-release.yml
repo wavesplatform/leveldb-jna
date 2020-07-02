@@ -152,11 +152,11 @@ jobs:
       - uses: actions/setup-java@v1
         with:
           java-version: 1.8
-      - name: Drop repository
+      - name: Release staging repository
         if: ${{ !contains(needs.create-staging.outputs.version, 'SNAPSHOT') }}
         uses: samuelmeuli/action-maven-publish@v1.4.0
         with:
-          maven_goals_phases: nexus-staging:drop
+          maven_goals_phases: nexus-staging:close nexus-staging:release nexus-staging:drop
           maven_args: -DstagingRepositoryId=${{needs.create-staging.outputs.staging-repo-id}}
           gpg_private_key: ${{ secrets.gpg_private_key }}
           gpg_passphrase: ${{ secrets.gpg_passphrase }}
