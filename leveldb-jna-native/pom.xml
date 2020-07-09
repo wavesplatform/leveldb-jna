@@ -40,9 +40,6 @@
                         <goals>
                             <goal>jar</goal>
                         </goals>
-                        <configuration>
-                            <classifier>${platform.classifier}</classifier>
-                        </configuration>
                     </execution>
                     <execution>
                         <id>default-jar</id>

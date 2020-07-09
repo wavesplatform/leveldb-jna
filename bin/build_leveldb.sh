@@ -2,9 +2,11 @@
 
 set -e
 
-export ROOT_HOME=$(cd $(dirname "$0") && cd .. && pwd)
+export ROOT_HOME=$(cd "$(dirname "$0")" && cd .. && pwd)
 export SNAPPY_HOME=$(cd $ROOT_HOME && cd vendor/snappy && pwd)
 export LEVELDB_HOME=$(cd $ROOT_HOME && cd vendor/leveldb && pwd)
+export RES_DIR="$ROOT_HOME/leveldb-jna-native/src/main/resources"
+
 
 if [[ "$1" == "clean" ]]; then
   echo --------------------
@@ -18,6 +20,8 @@ if [[ "$1" == "clean" ]]; then
   cd $LEVELDB_HOME
   git clean -fdx
   git reset --hard
+
+  rm -rf "$RES_DIR"
 fi
 
 echo --------------------
@@ -29,7 +33,16 @@ mkdir -p build && cd build
 if [[ "$OSTYPE" == "msys" ]]; then
   /mingw64/bin/cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_POSITION_INDEPENDENT_CODE=on -DBUILD_SHARED_LIBS=off -DSNAPPY_BUILD_TESTS=off -G "MSYS Makefiles" ..
 else
-  cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_POSITION_INDEPENDENT_CODE=on -DBUILD_SHARED_LIBS=off -DSNAPPY_BUILD_TESTS=off ..
+  if [[ -n $LEVELDB_TOOLCHAIN ]]; then
+    cp "$LEVELDB_TOOLCHAIN" current.toolchain
+    echo "Using custom toolchain"
+    cat current.toolchain
+  else
+    echo "Using system compiler"
+    touch current.toolchain
+  fi
+
+  cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_POSITION_INDEPENDENT_CODE=on -DBUILD_SHARED_LIBS=off -DSNAPPY_BUILD_TESTS=off -DCMAKE_TOOLCHAIN_FILE=current.toolchain ..
 fi
 cmake --build .
 cp ../*.h .
@@ -47,7 +60,16 @@ mkdir -p build && cd build
 if [[ "$OSTYPE" == "msys" ]]; then
   /mingw64/bin/cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=on -DLEVELDB_INSTALL=off "-DSNAPPY_HOME=$SNAPPY_HOME" -DLEVELDB_BUILD_TESTS=off -DLEVELDB_BUILD_BENCHMARKS=off -G "MSYS Makefiles" ..
 else
-  cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=on -DLEVELDB_INSTALL=off "-DSNAPPY_HOME=$SNAPPY_HOME" -DLEVELDB_BUILD_TESTS=off -DLEVELDB_BUILD_BENCHMARKS=off ..
+  if [[ -n $LEVELDB_TOOLCHAIN ]]; then
+    cp "$LEVELDB_TOOLCHAIN" current.toolchain
+    echo "Using custom toolchain"
+    cat current.toolchain
+  else
+    echo "Using system compiler"
+    touch current.toolchain
+  fi
+
+  cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=on -DLEVELDB_INSTALL=off "-DSNAPPY_HOME=$SNAPPY_HOME" -DLEVELDB_BUILD_TESTS=off -DLEVELDB_BUILD_BENCHMARKS=off -DCMAKE_TOOLCHAIN_FILE=current.toolchain ..
 fi
 cmake --build .
 
@@ -57,33 +79,27 @@ echo --------------------
 
 cd $LEVELDB_HOME
 
-if [[ "$OSTYPE" == "darwin"* ]]; then
-  LEVELDB_FILE=libleveldb.dylib
-  LEVELDB_ARCH=darwin
-  OUTPUT_LEVELDB_FILE=
-elif [[ "$OSTYPE" == "linux"* ]]; then
-  LEVELDB_FILE=libleveldb.so
-  if [[ -n $CUSTOM_ARCH ]]; then
-    LEVELDB_ARCH=linux-$CUSTOM_ARCH
-  elif [[ $(uname -m) == "x86_64" ]]; then
-    LEVELDB_ARCH=linux-x86-64
-  else
-    LEVELDB_ARCH=linux-x86
+if [[ -z $LEVELDB_ARCH ]]; then
+  if [[ "$OSTYPE" == "darwin"* ]]; then
+    LEVELDB_ARCH=darwin
+  elif [[ "$OSTYPE" == "linux"* ]]; then
+    if [[ $(uname -m) == "x86_64" ]]; then
+      LEVELDB_ARCH=linux-x86-64
+    else
+      LEVELDB_ARCH=linux-x86
+    fi
+  elif [[ "$OSTYPE" == "msys" ]]; then
+    LEVELDB_FILE=libleveldb.dll
+    if [[ "$MSYSTEM" == "MINGW64" ]]; then
+      LEVELDB_ARCH=win32-x86-64
+    else
+      LEVELDB_ARCH=win32-x86
+    fi
   fi
-  OUTPUT_LEVELDB_FILE=
-elif [[ "$OSTYPE" == "msys" ]]; then
-  LEVELDB_FILE=libleveldb.dll
-  if [[ -n $CUSTOM_ARCH ]]; then
-    LEVELDB_ARCH=win32-$CUSTOM_ARCH
-  elif [[ "$MSYSTEM" == "MINGW64" ]]; then
-    LEVELDB_ARCH=win32-x86-64
-  else
-    LEVELDB_ARCH=win32-x86
-  fi
-  OUTPUT_LEVELDB_FILE=leveldb.dll
 fi
 
-RES_DIR="$ROOT_HOME/leveldb-jna-native/src/main/resources"
-rm -rf "$RES_DIR"
 mkdir -p "$RES_DIR/$LEVELDB_ARCH"
-cp "$LEVELDB_HOME/build/$LEVELDB_FILE" "$RES_DIR/$LEVELDB_ARCH/$OUTPUT_LEVELDB_FILE"
+
+cp "$LEVELDB_HOME/build/libleveldb.dll" "$RES_DIR/$LEVELDB_ARCH/leveldb.dll" ||
+  cp "$LEVELDB_HOME/build/libleveldb.so" "$RES_DIR/$LEVELDB_ARCH/" ||
+  cp "$LEVELDB_HOME/build/libleveldb.dylib" "$RES_DIR/$LEVELDB_ARCH/"

@@ -7,7 +7,7 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.revision>master</project.revision>
-        <revision>0.0.1</revision>
+        <revision>1.22.2-SNAPSHOT</revision>
     </properties>
 
     <groupId>com.wavesplatform.leveldb-jna</groupId>
@@ -134,10 +134,6 @@
                 <configuration>
                     <serverId>ossrh</serverId>
                     <nexusUrl>https://oss.sonatype.org/</nexusUrl>
-                    <skipStagingRepositoryClose>true</skipStagingRepositoryClose>
-                    <autoReleaseAfterClose>false</autoReleaseAfterClose>
-                    <stagingProfileId>126f55826efd5a</stagingProfileId>
-                    <stagingRepositoryId>${stagingRepositoryId}</stagingRepositoryId>
                 </configuration>
             </plugin>
 
@@ -167,128 +163,4 @@
             </plugin>
         </plugins>
     </build>
-
-    <profiles>
-        <!-- OSX -->
-
-        <profile>
-            <id>osx</id>
-            <activation>
-                <os>
-                    <family>mac</family>
-                    <name>Mac OS X</name>
-                </os>
-            </activation>
-            <properties>
-                <platform.classifier>osx</platform.classifier>
-            </properties>
-        </profile>
-
-        <!-- Windows -->
-
-        <profile>
-            <id>windows-amd64</id>
-            <activation>
-                <os>
-                    <family>windows</family>
-                    <arch>amd64</arch>
-                </os>
-            </activation>
-            <properties>
-                <platform.classifier>windows-x86_64</platform.classifier>
-            </properties>
-        </profile>
-        <profile>
-            <id>windows-x64</id>
-            <activation>
-                <os>
-                    <family>windows</family>
-                    <arch>x86_64</arch>
-                </os>
-            </activation>
-            <properties>
-                <platform.classifier>windows-x86_64</platform.classifier>
-            </properties>
-        </profile>
-        <profile>
-            <id>windows-x86</id>
-            <activation>
-                <os>
-                    <family>windows</family>
-                    <arch>x86</arch>
-                </os>
-            </activation>
-            <properties>
-                <platform.classifier>windows-x86</platform.classifier>
-            </properties>
-        </profile>
-
-        <!-- Linux -->
-
-        <profile>
-            <id>linux-amd64</id>
-            <activation>
-                <os>
-                    <family>unix</family>
-                    <name>Linux</name>
-                    <arch>amd64</arch>
-                </os>
-            </activation>
-            <properties>
-                <platform.classifier>linux-x86_64</platform.classifier>
-            </properties>
-        </profile>
-        <profile>
-            <id>linux-x64</id>
-            <activation>
-                <os>
-                    <family>unix</family>
-                    <name>Linux</name>
-                    <arch>x86_64</arch>
-                </os>
-            </activation>
-            <properties>
-                <platform.classifier>linux-x86_64</platform.classifier>
-            </properties>
-        </profile>
-        <profile>
-            <id>linux-x86</id>
-            <activation>
-                <os>
-                    <family>unix</family>
-                    <name>Linux</name>
-                    <arch>x86</arch>
-                </os>
-            </activation>
-            <properties>
-                <platform.classifier>linux-x86</platform.classifier>
-            </properties>
-        </profile>
-        <profile>
-            <id>linux-i386</id>
-            <activation>
-                <os>
-                    <family>unix</family>
-                    <name>Linux</name>
-                    <arch>i386</arch>
-                </os>
-            </activation>
-            <properties>
-                <platform.classifier>linux-x86</platform.classifier>
-            </properties>
-        </profile>
-        <profile>
-            <id>linux-i686</id>
-            <activation>
-                <os>
-                    <family>unix</family>
-                    <name>Linux</name>
-                    <arch>i686</arch>
-                </os>
-            </activation>
-            <properties>
-                <platform.classifier>linux-x86</platform.classifier>
-            </properties>
-        </profile>
-    </profiles>
 </project>
