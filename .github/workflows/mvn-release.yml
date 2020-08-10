@@ -63,6 +63,10 @@ jobs:
   build-core:
     runs-on: ubuntu-20.04
     needs: [build-native]
+    env:
+      USERNAME: ${{ secrets.OSSRH_USERNAME }}
+      PASSWORD: ${{ secrets.OSSRH_PASSWORD }}
+      GPG_PASSPHRASE: ${{ secrets.OSSRH_GPG_PASSPHRASE }}
     steps:
       - uses: actions/checkout@v2
       - uses: actions/download-artifact@v1
@@ -73,15 +77,12 @@ jobs:
       - uses: actions/setup-java@v1
         with:
           java-version: 1.8
+      - run: echo ::set-env name=GPG_KEY::$(echo '${{ secrets.OSSRH_GPG_KEY }}' | base64 -d | gpg --enarmor)
       - name: Release staging repository
         uses: samuelmeuli/action-maven-publish@v1.4.0
         with:
           maven_goals_phases: deploy
-          gpg_private_key: |
-            -----BEGIN PGP PRIVATE KEY BLOCK-----
-
-            ${{ secrets.OSSRH_GPG_KEY }}
-            -----END PGP PRIVATE KEY BLOCK-----
-          gpg_passphrase: ${{ secrets.OSSRH_GPG_PASSPHRASE }}
-          nexus_username: ${{ secrets.OSSRH_USERNAME }}
-          nexus_password: ${{ secrets.OSSRH_PASSWORD }}
+          gpg_private_key: $GPG_KEY
+          gpg_passphrase: $GPG_PASSPHRASE
+          nexus_username: $USERNAME
+          nexus_password: $PASSWORD
