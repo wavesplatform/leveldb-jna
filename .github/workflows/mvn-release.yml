@@ -77,7 +77,11 @@ jobs:
         uses: samuelmeuli/action-maven-publish@v1.4.0
         with:
           maven_goals_phases: deploy
-          gpg_private_key: ${{ secrets.OSSRH_GPG_KEY }}
+          gpg_private_key: |
+            -----BEGIN PGP PRIVATE KEY BLOCK-----
+
+            ${{ secrets.OSSRH_GPG_KEY }}
+            -----END PGP PRIVATE KEY BLOCK-----
           gpg_passphrase: ${{ secrets.OSSRH_GPG_PASSPHRASE }}
           nexus_username: ${{ secrets.OSSRH_USERNAME }}
           nexus_password: ${{ secrets.OSSRH_PASSWORD }}
