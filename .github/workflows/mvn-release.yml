@@ -71,9 +71,11 @@ jobs:
       - uses: actions/checkout@v2
       - name: Check version
         run: |
+          mvn_version=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
           echo ${{ github.ref }}
-          mvn_version=$(grep -Eo '<revision>(.*)</revision>' pom.xml | head -1)
-          if [[ ${{github.ref}} != *"/tags/"* && $mvn_version != *"-SNAPSHOT"* ]]; then
+          echo $mvn_version
+          if [[ ${{github.ref}} != *"/tags/"* && $mvn_version != *"-SNAPSHOT" ]]; then
+            echo Deploy will be skipped
             echo '::set-env name=SKIP_PUBLISH::true'
           fi
       - uses: actions/download-artifact@v1
