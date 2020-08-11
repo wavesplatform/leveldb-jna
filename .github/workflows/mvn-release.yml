@@ -2,7 +2,8 @@ name: Publish artfiacts to Sonatype Repo
 
 on:
   push:
-    branches: [master, arm64-build]
+    branches:
+      - master
 
 jobs:
   build-native:
