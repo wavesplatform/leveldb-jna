@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - master
-      - arm64-build
     tags:
       - v[0-9].[0-9]+.[0-9]+
 
@@ -90,7 +89,7 @@ jobs:
         if: ${{ !env.SKIP_PUBLISH }}
         uses: samuelmeuli/action-maven-publish@v1.4.0
         with:
-          maven_goals_phases: install
+          maven_goals_phases: deploy
           maven_args: -Dmaven.test.skip -pl leveldb-jna-native,leveldb-jna-core
           gpg_private_key: ${{ secrets.OSSRH_GPG_KEY_ASCII }}
           gpg_passphrase: ${{ secrets.OSSRH_GPG_PASSPHRASE }}
