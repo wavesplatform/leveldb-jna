@@ -74,8 +74,7 @@ jobs:
           echo ${{ github.ref }}
           mvn_version=$(grep -Eo '<revision>(.*)</revision>' pom.xml | head -1)
           if [[ ${{github.ref}} != *"/tags/"* && $mvn_version != *"-SNAPSHOT"* ]]; then
-            echo Release version should be only published on tag
-            exit 1
+            echo '::set-env name=SKIP_PUBLISH::true'
           fi
       - uses: actions/download-artifact@v1
         with:
@@ -86,6 +85,7 @@ jobs:
         with:
           java-version: 1.8
       - name: Publish Maven package
+        if: ${{ !env.SKIP_PUBLISH }}
         uses: samuelmeuli/action-maven-publish@v1.4.0
         with:
           maven_goals_phases: install
