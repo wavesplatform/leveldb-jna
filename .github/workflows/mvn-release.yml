@@ -63,11 +63,6 @@ jobs:
   build-core:
     runs-on: ubuntu-20.04
     needs: [build-native]
-    env:
-      USERNAME: ${{ secrets.OSSRH_USERNAME }}
-      PASSWORD: ${{ secrets.OSSRH_PASSWORD }}
-      GPG_KEY: ${{ secrets.OSSRH_GPG_KEY_ASCII }}
-      GPG_PASSPHRASE: ${{ secrets.OSSRH_GPG_PASSPHRASE }}
     steps:
       - uses: actions/checkout@v2
       - uses: actions/download-artifact@v1
@@ -82,7 +77,7 @@ jobs:
         uses: samuelmeuli/action-maven-publish@v1.4.0
         with:
           maven_goals_phases: deploy
-          gpg_private_key: $GPG_KEY
-          gpg_passphrase: $GPG_PASSPHRASE
-          nexus_username: $USERNAME
-          nexus_password: $PASSWORD
+          gpg_private_key: ${{ secrets.OSSRH_GPG_KEY_ASCII }}
+          gpg_passphrase: ${{ secrets.OSSRH_GPG_PASSPHRASE }}
+          nexus_username: ${{ secrets.OSSRH_USERNAME }}
+          nexus_password: ${{ secrets.OSSRH_PASSWORD }}
