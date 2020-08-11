@@ -10,6 +10,7 @@
         <version>${revision}</version>
     </parent>
 
+    <name>LevelDB JNA Core</name>
     <artifactId>leveldb-jna-core</artifactId>
 
     <dependencies>
