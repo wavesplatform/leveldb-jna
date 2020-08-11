@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - master
+      - arm64-build
+    tags:
+      - v[0-9].[0-9]+.[0-9]+
 
 jobs:
   build-native:
@@ -66,6 +69,14 @@ jobs:
     needs: [build-native]
     steps:
       - uses: actions/checkout@v2
+      - name: Check version
+        run: |
+          echo ${{ github.ref }}
+          mvn_version=$(grep -Eo '<revision>(.*)</revision>' pom.xml | head -1)
+          if [[ ${{github.ref}} != *"/tags/"* && $mvn_version != *"-SNAPSHOT"* ]]; then
+            echo Release version should be only published on tag
+            exit 1
+          fi
       - uses: actions/download-artifact@v1
         with:
           name: native-images.zip
@@ -77,7 +88,7 @@ jobs:
       - name: Publish Maven package
         uses: samuelmeuli/action-maven-publish@v1.4.0
         with:
-          maven_goals_phases: deploy
+          maven_goals_phases: install
           maven_args: -Dmaven.test.skip -pl leveldb-jna-native,leveldb-jna-core
           gpg_private_key: ${{ secrets.OSSRH_GPG_KEY_ASCII }}
           gpg_passphrase: ${{ secrets.OSSRH_GPG_PASSPHRASE }}
