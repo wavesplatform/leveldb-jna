@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - master
+      - apple-silicon-build
     tags:
       - v[0-9].[0-9]+.[0-9]+
 
@@ -14,19 +15,16 @@ jobs:
       target-path: ${{ matrix.platform }}-${{ matrix.arch }}
     strategy:
       matrix:
-        platform: [linux, win32, macos]
+        platform: [linux, win32, darwin]
         arch: [x86, x86-64, aarch64]
         exclude:
-          - platform: macos
+          - platform: darwin
             arch: x86
-          - platform: macos
-            arch: aarch64
           - platform: win32
             arch: aarch64
         include:
-          - platform: macos
+          - platform: darwin
             os: macos-latest
-            target-path: darwin
           - platform: linux
             os: ubuntu-20.04
           - platform: linux
