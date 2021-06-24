@@ -22,12 +22,6 @@ jobs:
         include:
           - platform: macos
             os: macos-latest
-          - platform: macos
-            arch: x86-64
-            target-path: darwin
-          - platform: macos
-            arch: aarch64
-            target-path: darwin-aarch64
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-java@v1
