@@ -1,4 +1,4 @@
-name: Publish artfiacts to Sonatype Repo
+name: Build library
 
 on:
   push:
