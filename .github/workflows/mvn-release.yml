@@ -87,11 +87,18 @@ jobs:
       - uses: actions/setup-java@v1
         with:
           java-version: 1.8
+      - name: Maven install natives
+        if: ${{ !env.SKIP_PUBLISH }}
+        uses: samuelmeuli/action-maven-publish@v1.4.0
+        with:
+          maven_goals_phases: install
+          maven_args: -pl leveldb-jna-native
+          gpg_private_key: ${{ secrets.OSSRH_GPG_KEY_ASCII }}
+          gpg_passphrase: ${{ secrets.OSSRH_GPG_PASSPHRASE }}
       - name: Maven tests
         run: |
-          mvn -pl leveldb-jna-native install
           mvn -P test test
-      - name: Publish Maven package
+      - name: Maven publish package
         if: ${{ !env.SKIP_PUBLISH }}
         uses: samuelmeuli/action-maven-publish@v1.4.0
         with:
