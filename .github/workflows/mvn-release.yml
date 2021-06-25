@@ -6,6 +6,9 @@ on:
       - master
     tags:
       - v[0-9].[0-9]+.[0-9]+
+  pull_request:
+    branches:
+      - master
 
 jobs:
   build-native:
@@ -84,6 +87,10 @@ jobs:
       - uses: actions/setup-java@v1
         with:
           java-version: 1.8
+      - name: Maven tests
+        run: |
+          mvn -pl leveldb-jna-native install
+          mvn -P test test
       - name: Publish Maven package
         if: ${{ !env.SKIP_PUBLISH }}
         uses: samuelmeuli/action-maven-publish@v1.4.0
